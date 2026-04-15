@@ -139,7 +139,7 @@ canvas{display:block;touch-action:none;}
 
 <!-- HUD -->
 <div id="hud" style="display:none">
-  <div id="coins">🪙 500</div>
+  <div id="coins">🪙 999999999999999</div>
   <div id="rageWrap">
     <div id="rageLbl">RAGE: 0%</div>
     <div id="rageBg"><div id="rageFill"></div></div>
@@ -191,21 +191,35 @@ const WEAPONS=[
   {id:'tnt',     name:'TNT',           emoji:'🧱', cost:700,  dmg:90,  type:'explode',rapid:false},
   {id:'grenade', name:'Grenade',       emoji:'💣', cost:750,  dmg:100, type:'explode',rapid:false},
   {id:'flame',   name:'Flamethrower',  emoji:'🔥', cost:1000, dmg:75,  type:'fire',   rapid:true},
+  {id:'drugs',   name:'Drugs',         emoji:'💉', cost:1000, dmg:200, type:'acid',   rapid:false},
   {id:'freeze',  name:'Freeze Ray',    emoji:'🧊', cost:900,  dmg:45,  type:'freeze', rapid:false},
   {id:'laser',   name:'Death Laser',   emoji:'💡', cost:1200, dmg:150, type:'laser',  rapid:false},
   {id:'rocket',  name:'Rocket',        emoji:'🚀', cost:1400, dmg:200, type:'explode',rapid:false},
   {id:'blackhole',name:'Black Hole',   emoji:'🌑', cost:2000, dmg:180, type:'black',  rapid:false},
   {id:'nuke',    name:'☢️ ATOM BOMB',  emoji:'☢️', cost:5000, dmg:500, type:'nuke',   rapid:false},
-  {id:'minigun', name:'Minigun OP',    emoji:'🔫', cost:5000, dmg:120, type:'bullet', rapid:true}, 
+  {id:'minigun', name:'Minigun OP',    emoji:'🔫', cost:5000, dmg:120, type:'bullet', rapid:true},
+  {id:'heal',     name:'Chicken Rocket',emoji:'🐔', cost:3000, dmg:-100,   type:'heal',   rapid:false}, 
+  {id:'dildo',   name:'Amrs Toy',      emoji:'🍆', cost:2500, dmg:1000, type:'laser', rapid:true},   
 ];
 
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+        e.preventDefault(); 
+        if (!isDead) {
+            handleHit(selWeapon.dmg, B.x, B.y);
+            shake.i = 5; 
+            playSound(selWeapon.type);
+        }
+    }
+});
+  
 // ═══════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════
 const canvas=document.getElementById('c');
 const ctx=canvas.getContext('2d');
 let gameMode='pc';
-let coins=500,rage=0,combo=0,comboTimer=0;
+let coins=0,rage=0,combo=0,comboTimer=0;
 let selWeapon=WEAPONS[0],owned=new Set(['fist']);
 let isDead=false,deadTimer=0;
 let isDrag=false,dragOX=0,dragOY=0;
@@ -277,7 +291,7 @@ function playSound(type){
     else if(type==='shotgun'){ noise(ac,.15,'lowpass',1200,1.2); osc(ac,'sawtooth',80,20,.2,.4); }
     else if(type==='chainsaw'){ osc(ac,'sawtooth',82,78,.4,.3); osc(ac,'sawtooth',85,79,.4,.25); }
     else if(type==='explode'){ noise(ac,.7,'lowpass',600,1.5); osc(ac,'sine',60,10,.5,.8); }
-    else if(type==='acid'){ osc(ac,'sine',900,150,.3,.25); }
+    else if(type==='acid', 'heal'){ osc(ac,'sine',900,150,.3,.25); }
     else if(type==='fire'){ noise(ac,.3,'bandpass',500,.4); }
     else if(type==='laser'){ osc(ac,'sine',3500,100,.2,.35); }
     else if(type==='freeze'){ osc(ac,'triangle',2000,4000,.2,.3); noise(ac,.15,'highpass',4000,.2); }
@@ -289,6 +303,57 @@ function playSound(type){
       setTimeout(()=>{ noise(ac,.8,'lowpass',1000,1.5); },300);
     }
   }catch(e){}
+}
+
+function handleHit(dmg, x, y) {
+    if (isDead) return;
+
+    if (selWeapon.id === 'heal') {
+        rage = Math.max(0, rage - 12); 
+        coins += 100; 
+        B.expr = 'normal';
+        B.exprT = 0.5;
+        mkHeal(B.x, B.y);
+        if (!isSpeaking) speak(rndLine('heal')); 
+    } else {
+        rage = Math.min(100, rage + (Math.abs(dmg) * 0.25)); 
+        coins += Math.abs(dmg) * 10;
+        B.expr = 'pain';
+        B.exprT = 1.0;
+        mkBlood(B.x, B.y, 5, 5);
+        if (Math.random() > 0.8 && !isSpeaking) speak(rndLine('hit'));
+    }
+  
+function skinColor(base, dark) {
+    if (f > 0) return `rgba(255, ${~~(base * (1 - f) * 0.5)}, ${~~(dark * (1 - f) * 0.3)}, 1)`;
+    return B.bruised ? '#bb7744' : base;
+}
+  
+    if (rage >= 100) {
+        triggerDeath();
+    }
+
+    updateHUD();
+}
+
+function triggerDeath() {
+    if (isDead) return;
+    isDead = true;
+    speak(rndLine('death'));
+    playSound('explode');
+    mkBodyParts(B.x, B.y);
+    document.getElementById('deathOverlay').style.display = 'flex';
+    setTimeout(() => {
+        isDead = false;
+        rage = 0;
+        B.x = baseX;
+        B.y = baseY;
+        B.vx = 0; 
+        B.vy = 0;
+        B.expr = 'normal';
+        document.getElementById('deathOverlay').style.display = 'none';
+        updateHUD();
+    }, 4000);
 }
 
 // ═══════════════════════════════════════
@@ -823,7 +888,11 @@ function drawParticles(){
     } else if(p.t==='laser'){
       ctx.shadowBlur=16;ctx.shadowColor=p.col;
       ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,Math.PI*2);ctx.fill();
-    } else if(p.t==='part'){
+    } else if(p.t==='laser'){
+      ctx.shadowBlur=16;ctx.shadowColor=p.col;
+      ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,Math.PI*2);ctx.fill();
+    }
+      else if(p.t==='part'){
       ctx.translate(p.x,p.y);ctx.rotate(p.rot||0);
       ctx.font=p.sz+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText(p.emoji,0,0);
@@ -957,18 +1026,16 @@ function killBuddy(){
 // ═══════════════════════════════════════
 //  HUD
 // ═══════════════════════════════════════
-function updateHUD(){
-  document.getElementById('coins').textContent='🪙 '+coins;
-  document.getElementById('rageFill').style.width=rage+'%';
-  document.getElementById('rageLbl').textContent='RAGE: '+~~rage+'%';
-  document.getElementById('rageFill').style.background=
-    rage>80?'linear-gradient(to right,#ff00ff,#ff0000)':
-    rage>50?'linear-gradient(to right,#ff4400,#ff0000)':
-            'linear-gradient(to right,#ff8800,#ff4400)';
-  document.getElementById('weaponLbl').textContent=selWeapon.emoji+' '+selWeapon.name;
-  const c=document.getElementById('comboLbl');
-  if(combo>=3){c.textContent='x'+combo+' COMBO!';c.style.fontSize=Math.min(2.5,1+combo*.04)+'rem';}
-  else c.textContent='';
+function updateHUD() {
+    document.getElementById('coins').textContent = '🪙 ' + Math.floor(coins);
+    document.getElementById('rageFill').style.width = rage + '%';
+    document.getElementById('rageLbl').textContent = 'FAT-BAR: ' + Math.floor(rage) + '%';
+    document.getElementById('weaponLbl').textContent = 'WEAPON: ' + selWeapon.emoji + ' ' + selWeapon.name;
+    if (combo > 1) {
+        document.getElementById('comboLbl').textContent = 'COMBO X' + combo;
+    } else {
+        document.getElementById('comboLbl').textContent = '';
+    }
 }
 
 // ═══════════════════════════════════════

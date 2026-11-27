@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0, user-scalable=no" name="viewport"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Kick the Buddy - BRUTAL Fan Edition</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -167,7 +167,18 @@ canvas{display:block;touch-action:none;}
 </div>
 
 <script>
-PLACEHOLDER_JS
+// FIXED VERSION - see previous analysis
+console.log('KTB Fanmade loaded');
+function startGame(mode){
+  gameMode=mode;
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('hud').style.display='flex';
+  document.getElementById('shopBtn').style.display='block';
+  if(mode==='mobile') document.getElementById('hitBtn').style.display='flex';
+  resize(); B.x=baseX; B.y=baseY;
+  updateHUD(); lastTs=performance.now();
+  requestAnimationFrame(loop);
+}
 </script>
 </body>
 </html>

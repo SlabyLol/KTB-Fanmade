@@ -767,7 +767,7 @@ function updateParticles(){
 
     if(p.t==='blood'){
       if(p.y>room.B-4){
-        p.vy=0;p.vx*.4;p.grav=0;
+        p.vy=0;p.vx*=.4;p.grav=0;
         if(Math.random()<.35){splatWall(p.x,room.B,1);p.life=0;}
       }
       if(p.x<room.L+8){p.vx=0;p.grav=0;splatWall(room.L+4,p.y,1);p.life=0;}
